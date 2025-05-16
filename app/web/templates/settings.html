@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Настройки системы</h1>
+
+<form method="POST">
+    <div class="form-group">
+        <label>Порог детекции:
+            <input type="number" step="0.01" name="threshold" value="{{ config.detection.threshold }}">
+        </label>
+    </div>
+    
+    <div class="form-group">
+        <label>Целевой IP:
+            <input type="text" name="target_ip" value="{{ config.traffic.target_ip }}">
+        </label>
+    </div>
+    
+    <div class="form-group">
+        <label>Скорость нормального трафика:
+            <input type="number" name="normal_rate" value="{{ config.traffic.normal_rate }}">
+        </label>
+    </div>
+    
+    <div class="form-group">
+        <label>Скорость атаки:
+            <input type="number" name="attack_rate" value="{{ config.traffic.attack_rate }}">
+        </label>
+    </div>
+    
+    <button type="submit" class="btn">Сохранить</button>
+</form>
+{% endblock %}

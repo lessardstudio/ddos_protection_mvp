@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  ddos-protection:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - ./config:/app/config
+    environment:
+      - FLASK_ENV=development
+    working_dir: /app
+    cap_add:
+      - NET_ADMIN
+    restart: unless-stopped

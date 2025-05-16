@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DDoS Protection Dashboard</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <div class="container">
+        <h1>DDoS Protection System</h1>
+        
+        <div class="panel">
+            <h2>Traffic Control</h2>
+            <div class="controls">
+                <button onclick="controlTraffic('start', 'normal')">Start Normal</button>
+                <button onclick="controlTraffic('start', 'attack')">Start Attack</button>
+                <button onclick="controlTraffic('stop')">Stop All</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Traffic Statistics</h2>
+            <canvas id="trafficChart"></canvas>
+        </div>
+
+        <div class="panel">
+            <h2>Attack Detection</h2>
+            <div id="map"></div>
+            <div class="ip-controls">
+                <input type="text" id="ipInput" placeholder="Enter IP to block">
+                <button onclick="blockIp()">Block IP</button>
+            </div>
+            <div id="ipLists"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+app:
+  debug: true
+  secret_key: "your-secret-key-here"
+
+traffic:
+  target_ip: "192.168.1.100"
+  interface: "eth0"  # Для Linux
+  # interface: "Ethernet"  # Для Windows
+  normal_rate: 10
+  attack_rate: 500
+
+detector:
+  threshold: 1000
+  block_duration: 300

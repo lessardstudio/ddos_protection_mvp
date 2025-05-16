@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDoS Protection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="/static/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">DDoS Protection System</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card status-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>Detection Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert" id="detection-status">Normal</div>
+                        <p>Blocked IPs: <span id="blocked-ips">0</span></p>
+                        <button id="block-ip" class="btn btn-danger">Block IP</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card status-card">
+                    <div class="card-header bg-primary text-white">
+                        <h5>Traffic Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="traffic-bars">
+                            <div class="traffic-bar">
+                                <label>Normal:</label>
+                                <div class="progress">
+                                    <div id="normal-bar" class="progress-bar bg-success" role="progressbar"></div>
+                                </div>
+                                <span id="normal-count">0</span> pps
+                            </div>
+                            <div class="traffic-bar">
+                                <label>Attack:</label>
+                                <div class="progress">
+                                    <div id="attack-bar" class="progress-bar bg-danger" role="progressbar"></div>
+                                </div>
+                                <span id="attack-count">0</span> pps
+                            </div>
+                            <div class="traffic-bar">
+                                <label>Blocked:</label>
+                                <div class="progress">
+                                    <div id="blocked-bar" class="progress-bar bg-warning" role="progressbar"></div>
+                                </div>
+                                <span id="blocked-count">0</span> pps
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5>Traffic Chart</h5>
+            </div>
+            <div class="card-body" style="position: relative; height: 400px;">
+                <canvas id="traffic-chart" height="400"></canvas>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5>Traffic Control</h5>
+            </div>
+            <div class="card-body">
+                <div class="btn-group">
+                    <button id="start-normal" class="btn btn-success">Start Normal</button>
+                    <button id="start-attack" class="btn btn-warning">Start Attack</button>
+                    <button id="stop-traffic" class="btn btn-danger">Stop All</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5>IP Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Заблокированные навсегда</h6>
+                        <ul id="permanent-ban-list" class="list-group">
+                            <li class="list-group-item">Пока нет заблокированных IP</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Временная блокировка (30 мин)</h6>
+                        <ul id="temp-ban-list" class="list-group">
+                            <li class="list-group-item">Пока нет временно заблокированных IP</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Подозрительные IP</h6>
+                        <ul id="suspicious-list" class="list-group">
+                            <li class="list-group-item">Пока нет подозрительных IP</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="input-group w-50">
+                        <input type="text" id="ip-input" class="form-control" placeholder="Введите IP-адрес">
+                        <button class="btn btn-danger" id="block-permanent-btn">Блокировать навсегда</button>
+                        <button class="btn btn-warning" id="block-temp-btn">Блокировать на 30 мин</button>
+                        <button class="btn btn-info" id="mark-suspicious-btn">Пометить как подозрительный</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="alert-box" class="mt-3"></div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

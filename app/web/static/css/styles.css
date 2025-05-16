@@ -1,0 +1,140 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.panel {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h2 {
+    color: #444;
+    margin-top: 0;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#map {
+    height: 400px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+}
+
+.ip-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+#ipLists {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+#ipLists h3 {
+    color: #666;
+    margin-top: 0;
+}
+
+#ipLists ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#ipLists li {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+}
+
+canvas {
+    width: 100% !important;
+    height: 300px !important;
+}
+
+.status-card {
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    font-weight: bold;
+}
+
+.traffic-bars {
+    margin-top: 15px;
+}
+
+.traffic-bar {
+    margin-bottom: 15px;
+}
+
+.traffic-bar label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.progress {
+    height: 25px;
+    margin-bottom: 5px;
+}
+
+#alert-box {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+#traffic-chart {
+    width: 100% !important;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+}
