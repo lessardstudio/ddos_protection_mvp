@@ -2,7 +2,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Elements
     const startNormalBtn = document.getElementById('start-normal');
     const startAttackBtn = document.getElementById('start-attack');
+    const startCombinedBtn = document.getElementById('start-combined');
     const stopBtn = document.getElementById('stop-traffic');
+    const stopNormalBtn = document.getElementById('stop-normal');
+    const stopAttackBtn = document.getElementById('stop-attack');
     const blockIpBtn = document.getElementById('block-ip');
     const alertBox = document.getElementById('alert-box');
     const detectionStatus = document.getElementById('detection-status');
@@ -118,7 +121,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listeners
     startNormalBtn.addEventListener('click', () => sendTrafficCommand('start', 'normal'));
     startAttackBtn.addEventListener('click', () => sendTrafficCommand('start', 'attack'));
+    startCombinedBtn.addEventListener('click', () => sendTrafficCommand('start', 'combined'));
     stopBtn.addEventListener('click', () => sendTrafficCommand('stop'));
+    stopNormalBtn.addEventListener('click', () => sendTrafficCommand('stop_normal'));
+    stopAttackBtn.addEventListener('click', () => sendTrafficCommand('stop_attack'));
     blockIpBtn.addEventListener('click', blockIp);
     blockPermanentBtn.addEventListener('click', () => manageIp('block_permanent'));
     blockTempBtn.addEventListener('click', () => manageIp('block_temp'));
@@ -130,14 +136,28 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             // Update status
-            detectionStatus.textContent = data.detection.is_attack ? 'ATTACK DETECTED' : 'NORMAL';
-            detectionStatus.className = data.detection.is_attack ? 'alert alert-danger' : 'alert alert-success';
+            const isAttack = data.detection.is_attack;
+            let statusText = 'НОРМАЛЬНЫЙ';
+            let statusClass = 'alert alert-success';
+            
+            if (isAttack) {
+                statusText = 'АТАКА ОБНАРУЖЕНА';
+                statusClass = 'alert alert-danger';
+            }
+            
+            // Если мы в комбинированном режиме, покажем это
+            if (data.detection.mode === 'combined') {
+                statusText += ' (КОМБИНИРОВАННЫЙ РЕЖИМ)';
+            }
+            
+            detectionStatus.textContent = statusText;
+            detectionStatus.className = statusClass;
             blockedIpsCount.textContent = data.detection.blocked_ips_count;
             
             // Update traffic bars
-            normalCount.textContent = `${data.generator.normal}`;
-            attackCount.textContent = `${data.generator.attack}`;
-            blockedCount.textContent = `${data.generator.blocked}`;
+            normalCount.textContent = `${data.generator.normal} pps`;
+            attackCount.textContent = `${data.generator.attack} pps`;
+            blockedCount.textContent = `${data.generator.blocked} pps`;
             
             // Шкалы для полос прогресса (адаптивные)
             const normalMax = Math.max(100, data.generator.normal * 1.2);
@@ -203,14 +223,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function sendTrafficCommand(action, mode = null) {
-        const url = `/api/traffic/${action}${mode ? `?mode=${mode}` : ''}`;
+        let url = `/api/traffic/${action}`;
+        if (mode && action === 'start') {
+            url += `?mode=${mode}`;
+        }
+        
         try {
             const response = await fetch(url, { method: 'POST' });
             const result = await response.json();
-            showAlert(result.status === 'started' ? 
-                `${mode} traffic started` : 'Traffic stopped', 'success');
+            
+            let message = '';
+            if (action === 'start') {
+                if (mode === 'normal') {
+                    message = 'Нормальный трафик запущен';
+                } else if (mode === 'attack') {
+                    message = 'Атакующий трафик запущен';
+                } else if (mode === 'combined') {
+                    message = 'Комбинированный трафик запущен (норм + атака)';
+                }
+            } else if (action === 'stop') {
+                message = 'Генерация всех типов трафика остановлена';
+            } else if (action === 'stop_normal') {
+                message = 'Генерация нормального трафика остановлена';
+            } else if (action === 'stop_attack') {
+                message = 'Генерация атакующего трафика остановлена';
+            }
+            
+            showAlert(message, 'success');
         } catch (error) {
-            showAlert('Command failed', 'danger');
+            showAlert('Ошибка при отправке команды', 'danger');
             console.error('Traffic control error:', error);
         }
     }

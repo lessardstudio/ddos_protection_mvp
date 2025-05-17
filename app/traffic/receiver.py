@@ -116,8 +116,11 @@ class TrafficReceiver:
             
             if time_diff > 0:
                 normal_pps = int((self.normal_count - self._last_normal_count) / time_diff)
-                attack_pps = int((self.attack_count - self._last_attack_count) / time_diff)
+                total_attack_pps = int((self.attack_count - self._last_attack_count) / time_diff)
                 blocked_pps = int((self.blocked_count - self._last_blocked_count) / time_diff)
+                
+                # Вычисляем незаблокированный атакующий трафик как разницу
+                attack_pps = max(0, total_attack_pps - blocked_pps)
                 
                 # Обновляем предыдущие значения
                 self._last_stats_time = current_time
@@ -128,6 +131,15 @@ class TrafficReceiver:
                 normal_pps = 0
                 attack_pps = 0
                 blocked_pps = 0
+        
+        # Если заблокированный трафик превышает атакующий, корректируем значения
+        if blocked_pps > attack_pps:
+            send_alert(f"Warning: Blocked traffic {blocked_pps} exceeds attack traffic {attack_pps}, adjusting values")
+            attack_pps = blocked_pps
+        
+        # Логирование для отладки
+        send_alert(f"Calculated Receiver stats - Normal: {normal_pps} pps, Attack (unblocked): {attack_pps} pps, " + 
+                  f"Blocked: {blocked_pps} pps, Total Attack: {attack_pps + blocked_pps} pps")
         
         stats = {
             'pps': len(self.packet_history),

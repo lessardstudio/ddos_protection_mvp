@@ -12,6 +12,8 @@ class TrafficGenerator:
         self.normal_rate = self.config.get('normal_rate', 10)
         self.attack_rate = self.config.get('attack_rate', 500)
         self.is_running = False
+        self.normal_running = False  # Флаг для нормального трафика
+        self.attack_running = False  # Флаг для атакующего трафика
         self.mode = 'normal'
         self.attack_mode = 'normal'
         self.normal_count = 0
@@ -26,7 +28,7 @@ class TrafficGenerator:
         }
 
     def generate_normal(self):
-        while self.is_running:
+        while self.is_running and self.normal_running:
             packet = IP(dst=self.target_ip)/TCP(dport=80)
             send(packet, verbose=0)
             self.normal_count += 1
@@ -35,9 +37,6 @@ class TrafficGenerator:
     def generate_attack(self):
         """Generate attack traffic"""
         try:
-            if self.attack_mode == 'normal':
-                return
-            
             attack_config = self.attack_modes.get(self.attack_mode, self.attack_modes['normal'])
             rate = attack_config['rate']
             ip_count = attack_config['ip_count']
@@ -45,12 +44,12 @@ class TrafficGenerator:
             # Debug logs
             send_alert(f"Generating attack traffic - Mode: {self.attack_mode}, Rate: {rate}, IP count: {ip_count}")
             
-            while self.is_running:
+            while self.is_running and self.attack_running:
                 try:
                     # Generate attack packets
                     packets_sent = 0
                     for _ in range(rate):
-                        if not self.is_running:
+                        if not self.is_running or not self.attack_running:
                             break
                         
                         # Get random IP that is not blocked
@@ -75,7 +74,7 @@ class TrafficGenerator:
                         
                     # Логируем отправленные пакеты
                     if packets_sent > 0:
-                        send_alert(f"Sent {packets_sent} attack packets, total attack count: {self.attack_count}")
+                        send_alert(f"Sent {packets_sent} attack packets, mode: {self.mode}, attack running: {self.attack_running}")
                     
                     time.sleep(1)  # Wait for 1 second
                     
@@ -86,36 +85,88 @@ class TrafficGenerator:
         except Exception as e:
             send_alert(f"Fatal error in attack generation: {str(e)}")
         finally:
-            self.is_running = False
+            self.attack_running = False
+            send_alert("Attack traffic generation stopped")
 
     def start(self, mode):
         """Запускает генерацию трафика в указанном режиме"""
-        if self.is_running:
-            return
-        
-        self.is_running = True
+        if not self.is_running:
+            self.is_running = True
+            
         self.mode = mode
-        self.attack_mode = random.choice(['aggressive', 'smart', 'normal']) if mode == 'attack' else 'normal'
-        send_alert(f"Starting traffic generation in {mode} mode with attack mode: {self.attack_mode}")
         
-        if mode == 'attack':
-            self.attack_thread = threading.Thread(target=self.generate_attack)
-            self.attack_thread.daemon = True
-            self.attack_thread.start()
-        else:
-            self.normal_thread = threading.Thread(target=self.generate_normal)
-            self.normal_thread.daemon = True
-            self.normal_thread.start()
-        send_alert(f"Traffic generation started in {mode} mode")
+        if mode == 'normal':
+            # Запускаем только нормальный трафик
+            if not self.normal_running:
+                self.normal_running = True
+                self.normal_thread = threading.Thread(target=self.generate_normal)
+                self.normal_thread.daemon = True
+                self.normal_thread.start()
+                send_alert("Normal traffic generation started")
+                
+        elif mode == 'attack':
+            # Запускаем только атакующий трафик
+            if not self.attack_running:
+                self.attack_running = True
+                self.attack_mode = random.choice(['aggressive', 'smart', 'normal'])
+                self.attack_thread = threading.Thread(target=self.generate_attack)
+                self.attack_thread.daemon = True
+                self.attack_thread.start()
+                send_alert(f"Attack traffic generation started with mode: {self.attack_mode}")
+                
+        elif mode == 'combined':
+            # Запускаем оба типа трафика
+            if not self.normal_running:
+                self.normal_running = True
+                self.normal_thread = threading.Thread(target=self.generate_normal)
+                self.normal_thread.daemon = True
+                self.normal_thread.start()
+                send_alert("Normal traffic generation started")
+                
+            if not self.attack_running:
+                self.attack_running = True
+                self.attack_mode = random.choice(['aggressive', 'smart', 'normal'])
+                self.attack_thread = threading.Thread(target=self.generate_attack)
+                self.attack_thread.daemon = True
+                self.attack_thread.start()
+                send_alert(f"Attack traffic generation started with mode: {self.attack_mode}")
+        
+        send_alert(f"Traffic generation mode set to: {mode}")
 
     def stop(self):
+        """Останавливает генерацию всех типов трафика"""
         if self.is_running:
             self.is_running = False
+            self.normal_running = False
+            self.attack_running = False
+            
             if self.attack_thread:
                 self.attack_thread.join(timeout=2)
+                self.attack_thread = None
+                
             if self.normal_thread:
                 self.normal_thread.join(timeout=2)
-            send_alert("Traffic generator stopped")
+                self.normal_thread = None
+                
+            send_alert("All traffic generation stopped")
+    
+    def stop_normal(self):
+        """Останавливает только нормальный трафик"""
+        if self.normal_running:
+            self.normal_running = False
+            if self.normal_thread:
+                self.normal_thread.join(timeout=2)
+                self.normal_thread = None
+            send_alert("Normal traffic generation stopped")
+    
+    def stop_attack(self):
+        """Останавливает только атакующий трафик"""
+        if self.attack_running:
+            self.attack_running = False
+            if self.attack_thread:
+                self.attack_thread.join(timeout=2)
+                self.attack_thread = None
+            send_alert("Attack traffic generation stopped")
 
     def get_stats(self):
         """Возвращает текущую статистику по трафику"""
@@ -145,7 +196,7 @@ class TrafficGenerator:
         
         # Оценка заблокированного трафика (приблизительно)
         blocked_pps = 0
-        if self.ip_manager and self.mode == 'attack':
+        if self.ip_manager and (self.mode == 'attack' or self.mode == 'combined') and self.attack_running:
             blocked_ips = self.ip_manager.get_all_blocked_ips()
             if blocked_ips:
                 # Считаем, что заблокировано до 80% атакующего трафика, 
@@ -154,13 +205,16 @@ class TrafficGenerator:
                 blocked_pps = int(attack_pps * block_ratio)
         
         # Возвращаем только незаблокированный атакующий трафик в 'attack'
-        attack_pps = max(0, attack_pps - blocked_pps)
+        unblocked_attack_pps = max(0, attack_pps - blocked_pps)
         
         return {
             'normal': normal_pps,
-            'attack': attack_pps,
+            'attack': unblocked_attack_pps,
             'blocked': blocked_pps,
-            'total_attack': attack_pps + blocked_pps,
-            'attack_mode': self.attack_mode if self.mode == 'attack' else 'normal',
-            'is_running': self.is_running
+            'total_attack': attack_pps,
+            'attack_mode': self.attack_mode if (self.mode == 'attack' or self.mode == 'combined') and self.attack_running else 'normal',
+            'is_running': self.is_running,
+            'normal_running': self.normal_running,
+            'attack_running': self.attack_running,
+            'mode': self.mode
         }

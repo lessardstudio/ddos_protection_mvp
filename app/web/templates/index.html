@@ -74,10 +74,25 @@
                 <h5>Traffic Control</h5>
             </div>
             <div class="card-body">
-                <div class="btn-group">
-                    <button id="start-normal" class="btn btn-success">Start Normal</button>
-                    <button id="start-attack" class="btn btn-warning">Start Attack</button>
-                    <button id="stop-traffic" class="btn btn-danger">Stop All</button>
+                <div class="row mb-2">
+                    <div class="col">
+                        <h6>Начать генерацию трафика:</h6>
+                        <div class="btn-group">
+                            <button id="start-normal" class="btn btn-success">Нормальный</button>
+                            <button id="start-attack" class="btn btn-warning">Атака</button>
+                            <button id="start-combined" class="btn btn-primary">Оба типа</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <h6>Остановить генерацию трафика:</h6>
+                        <div class="btn-group">
+                            <button id="stop-normal" class="btn btn-outline-success">Остановить нормальный</button>
+                            <button id="stop-attack" class="btn btn-outline-warning">Остановить атаку</button>
+                            <button id="stop-traffic" class="btn btn-danger">Остановить все</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

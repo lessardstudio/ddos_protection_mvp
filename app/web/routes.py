@@ -13,6 +13,8 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
             gen_normal_pps = traffic_stats.get('normal', 0)
             gen_attack_pps = traffic_stats.get('attack', 0)
             gen_blocked_pps = traffic_stats.get('blocked', 0)
+            gen_total_attack_pps = traffic_stats.get('total_attack', 0)
+            gen_mode = traffic_stats.get('mode', 'unknown')
             
             # Получаем данные из traffic_rec
             rec_stats = traffic_rec.get_stats() if hasattr(traffic_rec, 'get_stats') else {'normal_count': 0, 'attack_count': 0, 'blocked_count': 0}
@@ -30,18 +32,19 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
             blocked_ips_count = len(blocked_ips)
             
             # Определяем статус атаки
-            is_attack = attack_pps > 0 or blocked_pps > 0 or (hasattr(traffic_gen, 'mode') and traffic_gen.mode == 'attack')
+            is_attack = attack_pps > 0 or blocked_pps > 0 or gen_mode in ['attack', 'combined']
             
             # Общий атакующий трафик - сумма незаблокированного и заблокированного
-            total_attack_pps = attack_pps + blocked_pps
+            total_attack_pps = max(gen_total_attack_pps, attack_pps + blocked_pps)
             
-            # Если нормальный трафик равен 0, устанавливаем минимальное значение для визуализации
+            # Если нормальный трафик равен 0 в нормальном режиме, устанавливаем минимальное значение для визуализации
             if normal_pps == 0 and not is_attack:
-                normal_pps = 10
+                normal_pps = 0
             
             # Debug logs
-            app.logger.info(f"Stats from Generator - Normal: {gen_normal_pps} pps, Attack: {gen_attack_pps} pps, Blocked: {gen_blocked_pps} pps")
-            app.logger.info(f"Stats from Receiver - Normal: {rec_normal_pps} pps, Attack: {rec_attack_pps} pps, Blocked: {rec_blocked_pps} pps")
+            app.logger.info(f"Generator mode: {gen_mode}")
+            app.logger.info(f"Stats from Generator - Normal: {gen_normal_pps} pps, Attack (unblocked): {gen_attack_pps} pps, Blocked: {gen_blocked_pps} pps, Total Attack: {gen_total_attack_pps} pps")
+            app.logger.info(f"Stats from Receiver - Normal: {rec_normal_pps} pps, Attack (unblocked): {rec_attack_pps} pps, Blocked: {rec_blocked_pps} pps")
             app.logger.info(f"Combined Stats - Normal: {normal_pps} pps, Attack (unblocked): {attack_pps} pps, Blocked: {blocked_pps} pps, Total Attack: {total_attack_pps} pps")
             app.logger.info(f"Blocked IPs count: {blocked_ips_count}")
             
@@ -54,14 +57,15 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
                 },
                 'detection': {
                     'is_attack': is_attack,
-                    'blocked_ips_count': blocked_ips_count
+                    'blocked_ips_count': blocked_ips_count,
+                    'mode': gen_mode  # Добавляем режим для отладки
                 }
             })
         except Exception as e:
             app.logger.error(f"Error getting stats: {e}")
             return jsonify({
                 'generator': {
-                    'normal': 10,  # Минимальное значение для тестирования
+                    'normal': 1,  # Минимальное значение для тестирования
                     'attack': 0,
                     'blocked': 0
                 },
@@ -74,7 +78,7 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
     @app.route('/api/traffic/start', methods=['POST'])
     def start_traffic():
         mode = request.args.get('mode')
-        if mode not in ['normal', 'attack']:
+        if mode not in ['normal', 'attack', 'combined']:
             return jsonify({'error': 'Invalid mode'}), 400
         
         traffic_gen.start(mode)
@@ -88,6 +92,24 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
             return jsonify({'status': 'success', 'message': 'Traffic generation stopped'})
         except Exception as e:
             send_alert(f"Error stopping traffic: {str(e)}")
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    @app.route('/api/traffic/stop_normal', methods=['POST'])
+    def stop_normal_traffic():
+        try:
+            traffic_gen.stop_normal()
+            return jsonify({'status': 'success', 'message': 'Normal traffic stopped'})
+        except Exception as e:
+            send_alert(f"Error stopping normal traffic: {str(e)}")
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    @app.route('/api/traffic/stop_attack', methods=['POST'])
+    def stop_attack_traffic():
+        try:
+            traffic_gen.stop_attack()
+            return jsonify({'status': 'success', 'message': 'Attack traffic stopped'})
+        except Exception as e:
+            send_alert(f"Error stopping attack traffic: {str(e)}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
 
     @app.route('/api/block', methods=['POST'])
