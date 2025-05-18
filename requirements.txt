@@ -8,3 +8,4 @@ scapy>=2.5.0
 gunicorn>=21.2.0
 dash>=2.14.0
 plotly>=5.18.0
+flasgger>=0.9.5

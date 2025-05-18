@@ -6,7 +6,45 @@ import random
 def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
     @app.route('/api/stats')
     def get_stats():
-        """Get current traffic statistics"""
+        """
+        Получение текущей статистики трафика
+        ---
+        tags:
+          - Traffic Monitoring
+        responses:
+          200:
+            description: Статистика трафика успешно получена
+            schema:
+              type: object
+              properties:
+                generator:
+                  type: object
+                  properties:
+                    normal:
+                      type: integer
+                      description: Нормальный трафик (pps)
+                    attack:
+                      type: integer
+                      description: Незаблокированный атакующий трафик (pps)
+                    blocked:
+                      type: integer
+                      description: Заблокированный атакующий трафик (pps)
+                    total_attack:
+                      type: integer
+                      description: Общий атакующий трафик (pps)
+                detection:
+                  type: object
+                  properties:
+                    is_attack:
+                      type: boolean
+                      description: Флаг обнаружения атаки
+                    blocked_ips_count:
+                      type: integer
+                      description: Количество заблокированных IP-адресов
+                    mode:
+                      type: string
+                      description: Текущий режим работы генератора трафика
+        """
         try:
             # Получаем реальные данные из traffic_gen и traffic_rec
             traffic_stats = traffic_gen.get_stats() if hasattr(traffic_gen, 'get_stats') else {'normal': 0, 'attack': 0}
@@ -77,6 +115,33 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
 
     @app.route('/api/traffic/start', methods=['POST'])
     def start_traffic():
+        """
+        Запуск генерации трафика
+        ---
+        tags:
+          - Traffic Control
+        parameters:
+          - name: mode
+            in: query
+            type: string
+            required: true
+            description: Режим генерации трафика
+            enum: [normal, attack, combined]
+        responses:
+          200:
+            description: Генерация трафика запущена
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                mode:
+                  type: string
+                  description: Выбранный режим генерации
+          400:
+            description: Ошибка в запросе (неверный режим)
+        """
         mode = request.args.get('mode')
         if mode not in ['normal', 'attack', 'combined']:
             return jsonify({'error': 'Invalid mode'}), 400
@@ -86,6 +151,26 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
 
     @app.route('/api/traffic/stop', methods=['POST'])
     def stop_traffic():
+        """
+        Остановка генерации всех типов трафика
+        ---
+        tags:
+          - Traffic Control
+        responses:
+          200:
+            description: Генерация трафика остановлена
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                message:
+                  type: string
+                  description: Сообщение о результате
+          500:
+            description: Внутренняя ошибка сервера
+        """
         try:
             traffic_gen.stop()
             send_alert("Traffic generation stopped")
@@ -96,6 +181,26 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
 
     @app.route('/api/traffic/stop_normal', methods=['POST'])
     def stop_normal_traffic():
+        """
+        Остановка генерации нормального трафика
+        ---
+        tags:
+          - Traffic Control
+        responses:
+          200:
+            description: Генерация нормального трафика остановлена
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                message:
+                  type: string
+                  description: Сообщение о результате
+          500:
+            description: Внутренняя ошибка сервера
+        """
         try:
             traffic_gen.stop_normal()
             return jsonify({'status': 'success', 'message': 'Normal traffic stopped'})
@@ -105,6 +210,26 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
 
     @app.route('/api/traffic/stop_attack', methods=['POST'])
     def stop_attack_traffic():
+        """
+        Остановка генерации атакующего трафика
+        ---
+        tags:
+          - Traffic Control
+        responses:
+          200:
+            description: Генерация атакующего трафика остановлена
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                message:
+                  type: string
+                  description: Сообщение о результате
+          500:
+            description: Внутренняя ошибка сервера
+        """
         try:
             traffic_gen.stop_attack()
             return jsonify({'status': 'success', 'message': 'Attack traffic stopped'})
@@ -114,15 +239,81 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
 
     @app.route('/api/block', methods=['POST'])
     def block_ip():
-        ip = request.json.get('ip')
-        if not ip:
-            return jsonify({'error': 'IP is required'}), 400
-        
-        detector.block_ip(ip)
-        return jsonify({'status': 'success', 'ip': ip})
+        """
+        Блокировка IP-адреса
+        ---
+        tags:
+          - IP Management
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - ip
+              properties:
+                ip:
+                  type: string
+                  description: IP-адрес для блокировки
+        responses:
+          200:
+            description: IP-адрес успешно заблокирован
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                message:
+                  type: string
+                  description: Сообщение о результате
+          400:
+            description: Ошибка в запросе (некорректный IP)
+          500:
+            description: Внутренняя ошибка сервера
+        """
+        try:
+            data = request.get_json()
+            ip = data.get('ip')
+            if not ip:
+                return jsonify({'error': 'IP is required'}), 400
+            
+            detector.block_ip(ip)
+            return jsonify({'status': 'success', 'ip': ip})
+        except Exception as e:
+            send_alert(f"Error blocking IP: {str(e)}")
+            return jsonify({'status': 'error', 'message': str(e)}), 500
 
     @app.route('/api/ip_lists')
     def get_ip_lists():
+        """
+        Получение списков IP-адресов
+        ---
+        tags:
+          - IP Management
+        responses:
+          200:
+            description: Списки IP успешно получены
+            schema:
+              type: object
+              properties:
+                permanent_bans:
+                  type: array
+                  items:
+                    type: string
+                  description: Список навсегда заблокированных IP
+                temp_bans:
+                  type: array
+                  items:
+                    type: string
+                  description: Список временно заблокированных IP
+                suspicious:
+                  type: array
+                  items:
+                    type: string
+                  description: Список подозрительных IP
+        """
         return jsonify(ip_manager.get_all_blocked())
     
     @app.route('/api/block_permanent', methods=['POST'])
@@ -198,3 +389,115 @@ def init_routes(app, detector, traffic_gen, traffic_rec, ip_manager):
         except Exception as e:
             app.logger.error(f"Error analyzing traffic: {e}")
             return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/ip/manage', methods=['POST'])
+    def manage_ip():
+        """
+        Управление IP-адресами (блокировка/разблокировка/пометка)
+        ---
+        tags:
+          - IP Management
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - ip
+                - action
+              properties:
+                ip:
+                  type: string
+                  description: IP-адрес для управления
+                action:
+                  type: string
+                  description: Действие с IP-адресом
+                  enum: [block_permanent, block_temp, mark_suspicious, unblock]
+        responses:
+          200:
+            description: Действие с IP-адресом успешно выполнено
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                message:
+                  type: string
+                  description: Сообщение о результате
+          400:
+            description: Ошибка в запросе (отсутствующий IP или неверное действие)
+          500:
+            description: Внутренняя ошибка сервера
+        """
+        try:
+            data = request.get_json()
+            ip = data.get('ip')
+            action = data.get('action')
+            if not ip or not action:
+                return jsonify({'error': 'IP and action are required'}), 400
+            
+            if action == 'block_permanent':
+                ip_manager.add_permanent_ban(ip)
+            elif action == 'block_temp':
+                ip_manager.add_temp_ban(ip)
+            elif action == 'mark_suspicious':
+                ip_manager.add_suspicious(ip)
+            elif action == 'unblock':
+                ip_manager.remove_ban(ip)
+            else:
+                return jsonify({'error': 'Invalid action'}), 400
+            
+            return jsonify({'status': 'success', 'message': f'IP {ip} {action}ed successfully'})
+        except Exception as e:
+            send_alert(f"Error managing IP: {str(e)}")
+            return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    @app.route('/api/ip/unblock', methods=['POST'])
+    def unblock_ip():
+        """
+        Разблокировка IP-адреса
+        ---
+        tags:
+          - IP Management
+        parameters:
+          - name: body
+            in: body
+            required: true
+            schema:
+              type: object
+              required:
+                - ip
+              properties:
+                ip:
+                  type: string
+                  description: IP-адрес для разблокировки
+        responses:
+          200:
+            description: IP-адрес успешно разблокирован
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Статус операции
+                message:
+                  type: string
+                  description: Сообщение о результате
+          400:
+            description: Ошибка в запросе (отсутствующий IP)
+          500:
+            description: Внутренняя ошибка сервера
+        """
+        try:
+            data = request.get_json()
+            ip = data.get('ip')
+            if not ip:
+                return jsonify({'error': 'IP is required'}), 400
+            
+            ip_manager.remove_ban(ip)
+            return jsonify({'status': 'success', 'ip': ip})
+        except Exception as e:
+            send_alert(f"Error unblocking IP: {str(e)}")
+            return jsonify({'status': 'error', 'message': str(e)}), 500

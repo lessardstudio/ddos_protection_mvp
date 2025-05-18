@@ -6,6 +6,7 @@ from app.traffic.generator import TrafficGenerator
 from app.traffic.receiver import TrafficReceiver
 from app.utils.config import load_config
 from app.utils.ip_manager import IPManager
+from flasgger import Swagger
 
 def create_app():
     # Получаем абсолютный путь до директории app
@@ -23,6 +24,48 @@ def create_app():
                template_folder=templates_dir)
     
     config = load_config()
+    
+    # Настройка Swagger
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": "apispec",
+                "route": "/apispec.json",
+                "rule_filter": lambda rule: True,  # all in
+                "model_filter": lambda tag: True,  # all in
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/api/docs"
+    }
+    
+    swagger_template = {
+        "info": {
+            "title": "DDoS Protection API",
+            "description": "API для системы защиты от DDoS-атак",
+            "contact": {
+                "email": "admin@example.com"
+            },
+            "version": "1.0.0"
+        },
+        "host": "localhost:5000",
+        "basePath": "/",
+        "schemes": [
+            "http"
+        ],
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Authorization header using the Bearer scheme."
+            }
+        },
+    }
+    
+    swagger = Swagger(app, config=swagger_config, template=swagger_template)
     
     # Инициализация компонентов
     ip_manager = IPManager()
